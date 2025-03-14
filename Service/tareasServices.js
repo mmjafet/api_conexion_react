@@ -1,61 +1,61 @@
 const express = require('express');
-const { MongoClient, ObjectId } = require('mongodb');
+const mongoose = require('mongoose');
+const { connectDB } = require('../data/config');
+const Tarea = require('../models/tareaModel');
+
 const app = express();
 const port = 3000;
 
-const uri = 'mongodb://admin:password@localhost:27017';
-const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
+connectDB();
 
 app.use(express.json());
 
 app.get('/tareas', async (req, res) => {
-  try {
-    await client.connect();
-    const database = client.db('mydatabase');
-    const collection = database.collection('tareas');
-    const tareas = await collection.find({}).toArray();
-    res.json(tareas);
-  } finally {
-    await client.close();
-  }
+    try {
+        const tareas = await Tarea.find({});
+        res.json(tareas);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.get('/tareas/completadas', async (req, res) => {
+    try {
+        const tareas = await Tarea.find({ status: true });
+        res.json(tareas);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.get('/tareas/pendientes', async (req, res) => {
+    try {
+        const tareas = await Tarea.find({ status: false });
+        res.json(tareas);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
 });
 
 app.post('/tareas', async (req, res) => {
-  try {
-    await client.connect();
-    const database = client.db('mydatabase');
-    const collection = database.collection('tareas');
-    const result = await collection.insertOne(req.body);
-    res.json(result);
-  } finally {
-    await client.close();
-  }
-});
-
-app.put('/tareas/:id', async (req, res) => {
-  try {
-    await client.connect();
-    const database = client.db('mydatabase');
-    const collection = database.collection('tareas');
-    const result = await collection.updateOne({ _id: ObjectId(req.params.id) }, { $set: req.body });
-    res.json(result);
-  } finally {
-    await client.close();
-  }
+    try {
+        const nuevaTarea = new Tarea(req.body);
+        const result = await nuevaTarea.save();
+        res.json(result);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
 });
 
 app.delete('/tareas/:id', async (req, res) => {
-  try {
-    await client.connect();
-    const database = client.db('mydatabase');
-    const collection = database.collection('tareas');
-    const result = await collection.deleteOne({ _id: ObjectId(req.params.id) });
-    res.json(result);
-  } finally {
-    await client.close();
-  }
+    try {
+        const result = await Tarea.findByIdAndDelete(req.params.id);
+        res.json(result);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
 });
 
 app.listen(port, () => {
-  console.log(`API listening at http://localhost:${port}`);
+    console.log(`API listening at http://localhost:${port}`);
 });
